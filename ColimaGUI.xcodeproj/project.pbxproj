@@ -14,7 +14,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		4869918B27C7AEA2006A1A01 /* ColimaGUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ColimaGUI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4869918B27C7AEA2006A1A01 /* Colima.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Colima.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4869918E27C7AEA2006A1A01 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		4869918F27C7AEA2006A1A01 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		4869919127C7AEA4006A1A01 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -46,7 +46,7 @@
 		4869918C27C7AEA2006A1A01 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4869918B27C7AEA2006A1A01 /* ColimaGUI.app */,
+				4869918B27C7AEA2006A1A01 /* Colima.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -68,9 +68,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		4869918A27C7AEA2006A1A01 /* ColimaGUI */ = {
+		4869918A27C7AEA2006A1A01 /* Colima */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4869919B27C7AEA4006A1A01 /* Build configuration list for PBXNativeTarget "ColimaGUI" */;
+			buildConfigurationList = 4869919B27C7AEA4006A1A01 /* Build configuration list for PBXNativeTarget "Colima" */;
 			buildPhases = (
 				4869918727C7AEA2006A1A01 /* Sources */,
 				4869918827C7AEA2006A1A01 /* Frameworks */,
@@ -80,9 +80,9 @@
 			);
 			dependencies = (
 			);
-			name = ColimaGUI;
+			name = Colima;
 			productName = ColimaGUI;
-			productReference = 4869918B27C7AEA2006A1A01 /* ColimaGUI.app */;
+			productReference = 4869918B27C7AEA2006A1A01 /* Colima.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -92,7 +92,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastUpgradeCheck = 1320;
+				LastUpgradeCheck = 1330;
 				TargetAttributes = {
 					4869918A27C7AEA2006A1A01 = {
 						CreatedOnToolsVersion = 13.2.1;
@@ -112,7 +112,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				4869918A27C7AEA2006A1A01 /* ColimaGUI */,
+				4869918A27C7AEA2006A1A01 /* Colima */,
 			);
 		};
 /* End PBXProject section */
@@ -275,6 +275,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZRMJX6VW65;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ColimaGUI/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
@@ -303,6 +304,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZRMJX6VW65;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ColimaGUI/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
@@ -332,7 +334,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4869919B27C7AEA4006A1A01 /* Build configuration list for PBXNativeTarget "ColimaGUI" */ = {
+		4869919B27C7AEA4006A1A01 /* Build configuration list for PBXNativeTarget "Colima" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4869919C27C7AEA4006A1A01 /* Debug */,

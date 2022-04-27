@@ -1,15 +1,12 @@
 {
   "images" : [
     {
-      "filename" : "dock.png",
+      "filename" : "imageedit_3_5636249748.png",
       "idiom" : "mac"
     }
   ],
   "info" : {
     "author" : "xcode",
     "version" : 1
-  },
-  "properties" : {
-    "template-rendering-intent" : "template"
   }
 }

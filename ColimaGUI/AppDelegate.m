@@ -20,6 +20,8 @@
 @property (weak) IBOutlet NSWindow *settingsWindow;
 @property (weak) IBOutlet NSSwitch *kubernetesSwitch;
 @property (weak) IBOutlet NSPopUpButton *runtimeDropDown;
+@property (weak) IBOutlet NSProgressIndicator *startWorkingIndicator;
+@property (weak) IBOutlet NSProgressIndicator *stopWorkingIndicator;
 
 @property (strong) NSNumber* cpuValue;
 @property (strong) NSNumber* memoryValue;
@@ -27,20 +29,65 @@
 @property BOOL useKubernetes;
 @property (strong) NSString* containerRuntime;
 
-@property (readonly) bool isStarted;
+@property bool isStarted;
+@property bool isWorking;
+@property (readonly) bool isStarting;
+@property (readonly) bool isStopping;
+@property (readonly) bool startMenuEnabled;
+@property (readonly) bool stopMenuEnabled;
 
-@property (weak) IBOutlet NSButton *deployPortainerButton;
+
+
 @property (weak) IBOutlet NSButton *okButton;
 
 @property (strong) NSString* message;
+
+@property (weak) IBOutlet NSView *homebrewDeployedLight;
+@property (weak) IBOutlet NSButton *deployHomebrewButton;
+
+@property (weak) IBOutlet NSView *colimaDeployedLight;
+@property (weak) IBOutlet NSButton *deployColimaButton;
+@property (weak) IBOutlet NSView *dockerDeployedLight;
+@property (weak) IBOutlet NSButton *deployDockerButton;
+
+
+@property (weak) IBOutlet NSView *portainerDeployedLight;
+@property (weak) IBOutlet NSButton *deployPortainerButton;
+
 
 @end
 
 @implementation AppDelegate
 
 @synthesize isStarted = _isStarted;
+@synthesize isWorking = _isWorking;
 
 dispatch_source_t _timer;
+NSProgressIndicator* progressIndicator;
+
+- (bool) getStartMenuEnabled {
+    return !self.isStarted && !self.isWorking;
+}
+
+- (bool) stopMenuEnabled {
+    return self.isStarted && !self.isWorking;
+}
+//
+- (bool) getIsStarted {
+    return !self.isStarted && self.isWorking;
+}
+
+- (bool) getIsStopping {
+    return self.isStarted && self.isWorking;
+}
+
+- (bool) mustDisplayStartingMenuItem {
+    return self.isStarting;
+}
+
+- (bool) mustDisplayStoppingMenuItem {
+    return self.isStopping;
+}
 
 - (NSNumber*) cpuCount {
     NSProcessInfo* info = NSProcessInfo.processInfo;
@@ -84,8 +131,6 @@ dispatch_source_t _timer;
 
 - (IBAction)onDashboardMenuClick:(id)sender {
     [[NSWorkspace sharedWorkspace] openURL:[NSURL  URLWithString:@"https://localhost:9443/"]];
-    //NSURL* url2 = [[NSWorkspace sharedWorkspace] URLForApplicationToOpenURL:url];
-    //NSLog(@"%@", url2);
 }
 
 - (IBAction)deployPortainer:(id)sender {
@@ -97,7 +142,7 @@ dispatch_source_t _timer;
     if ( dockerPath == nil ) return;
     
     task.launchPath = @"/bin/zsh";
-    command = [NSString stringWithFormat:@"%@ volume create portainer_data2 && %@ run -d -p 8001:8000 -p 9444:9443 --name portainer1 --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data2:/data portainer/portainer-ce:latest", dockerPath, dockerPath];
+    command = [NSString stringWithFormat:@"%@ volume create portainer_data && %@ run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest", dockerPath, dockerPath];
     [task setArguments:[NSArray arrayWithObjects: @"-c", @"-l", command, nil]];
     
     self.deployPortainerButton.enabled = NO;
@@ -113,8 +158,88 @@ dispatch_source_t _timer;
         });
     }];
     [task launchAndReturnError:&err];
+
+}
+
+- (IBAction)deployHomebrew:(id)sender {
+    NSTask* task = [[NSTask alloc] init];
+    NSError* err;
+    NSString* dockerPath = [self dockerPath];
+    NSString* command;
     
+    if ( dockerPath == nil ) return;
     
+    task.launchPath = @"/bin/zsh";
+    command = [NSString stringWithFormat:@"/bin/bash \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""];
+    [task setArguments:[NSArray arrayWithObjects: @"-c", @"-l", command, nil]];
+    
+    self.deployPortainerButton.enabled = NO;
+    self.okButton.enabled = NO;
+    
+    [task setTerminationHandler:^(NSTask* _Nonnull task){
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.deployPortainerButton.enabled = YES;
+            self.okButton.enabled = YES;
+            if ( task.terminationStatus != 0 ) {
+                self.message = @"An Error happened";
+            }
+        });
+    }];
+    [task launchAndReturnError:&err];
+}
+
+- (IBAction)deployColima:(id)sender {
+    NSTask* task = [[NSTask alloc] init];
+    NSError* err;
+    NSString* dockerPath = [self dockerPath];
+    NSString* command;
+    
+    if ( dockerPath == nil ) return;
+    
+    task.launchPath = @"/bin/zsh";
+    command = [NSString stringWithFormat:@"brew install colima"];
+    [task setArguments:[NSArray arrayWithObjects: @"-c", @"-l", command, nil]];
+    
+    self.deployColimaButton.enabled = NO;
+    self.okButton.enabled = NO;
+    
+    [task setTerminationHandler:^(NSTask* _Nonnull task){
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.deployColimaButton.enabled = YES;
+            self.okButton.enabled = YES;
+            if ( task.terminationStatus != 0 ) {
+                self.message = @"An Error happened";
+            }
+        });
+    }];
+    [task launchAndReturnError:&err];
+}
+
+- (IBAction)deployDocker:(id)sender {
+    NSTask* task = [[NSTask alloc] init];
+    NSError* err;
+    NSString* dockerPath = [self dockerPath];
+    NSString* command;
+    
+    if ( dockerPath == nil ) return;
+    
+    task.launchPath = @"/bin/zsh";
+    command = [NSString stringWithFormat:@"brew install docker"];
+    [task setArguments:[NSArray arrayWithObjects: @"-c", @"-l", command, nil]];
+    
+    self.deployDockerButton.enabled = NO;
+    self.okButton.enabled = NO;
+    
+    [task setTerminationHandler:^(NSTask* _Nonnull task){
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.deployDockerButton.enabled = YES;
+            self.okButton.enabled = YES;
+            if ( task.terminationStatus != 0 ) {
+                self.message = @"An Error happened";
+            }
+        });
+    }];
+    [task launchAndReturnError:&err];
 }
 
 - (bool)colimaIsStarted {
@@ -125,10 +250,52 @@ dispatch_source_t _timer;
     if ( colimaPath == nil ) return NO;
 
     task.launchPath = @"/bin/zsh";
-    [task setArguments:[NSArray arrayWithObjects: @"-c", @"-l", [NSString stringWithFormat:@"%@ status", colimaPath], nil]];
+    [task setArguments:[NSArray arrayWithObjects: @"-c", @"-l", [NSString stringWithFormat:@"%@ status >/dev/null 2>&1", colimaPath], nil]];
     [task launchAndReturnError:&err];
     [task waitUntilExit];
     return task.terminationStatus == 0;
+}
+
+- (bool)executableIsDeployed:(NSString*)exec {
+    NSTask* task = [[NSTask alloc] init];
+    NSError* err;
+    NSString* colimaPath = [self colimaPath];
+    //colimaPath = @"/bin/zsh";
+    if ( colimaPath == nil ) return NO;
+
+    task.launchPath = @"/bin/zsh";
+    [task setArguments:[NSArray arrayWithObjects: @"-c", @"-l", [NSString stringWithFormat:@"command -v %@ >/dev/null 2>&1 ", exec], nil]];
+    [task launchAndReturnError:&err];
+    [task waitUntilExit];
+    return task.terminationStatus == 0;
+}
+
+- (bool)homebrewIsDeployed {
+    return [self executableIsDeployed:@"brew"];
+}
+
+- (bool)colimaIsDeployed {
+    return [self executableIsDeployed:@"colima"];
+}
+
+- (bool)portainerIsDeployed {
+    //docker ps | grep portainer
+    NSTask* task = [[NSTask alloc] init];
+    NSError* err;
+    NSString* colimaPath = [self colimaPath];
+    //colimaPath = @"/bin/zsh";
+    if ( colimaPath == nil ) return NO;
+
+    task.launchPath = @"/bin/zsh";
+    [task setArguments:[NSArray arrayWithObjects: @"-c", @"-l", @"docker ps | grep portainer >/dev/null 2>&1", nil]];
+    [task launchAndReturnError:&err];
+    [task waitUntilExit];
+    return task.terminationStatus == 0;
+
+}
+
+- (bool)dockerIsDeployed {
+    return [self executableIsDeployed:@"docker"];
 }
 
 - (IBAction)onQuitMenuClick:(id)sender {
@@ -156,9 +323,29 @@ dispatch_source_t _timer;
                         ],
                         
                         nil]];
+    [task setTerminationHandler:^(NSTask* _Nonnull task){
+        dispatch_async(dispatch_get_main_queue(), ^{
+            //progressIndicator.hidden = YES;
+            self.isWorking = NO;
+        });
+    }];
+    self.isWorking = YES;
+    //progressIndicator.hidden = NO;
     [task launchAndReturnError:&err];
 
     
+}
+
+- (NSProgressIndicator*) getProgressIndicator:(NSSize) size {
+    if ( progressIndicator == nil ) {
+        NSRect frame = NSMakeRect(0, 0, size.width, size.height);
+        progressIndicator = [[NSProgressIndicator alloc] initWithFrame:frame];
+        progressIndicator.indeterminate = YES;
+        progressIndicator.style = NSProgressIndicatorStyleSpinning;
+        progressIndicator.hidden = YES;
+        [progressIndicator startAnimation:nil];
+    }
+    return progressIndicator;
 }
 
 - (IBAction)onStopMenuClick:(id)sender {
@@ -170,6 +357,14 @@ dispatch_source_t _timer;
     
     task.launchPath = @"/bin/zsh";
     [task setArguments:[NSArray arrayWithObjects: @"-c", @"-l", [NSString stringWithFormat:@"%@ stop", colimaPath], nil]];
+    [task setTerminationHandler:^(NSTask* _Nonnull task){
+        dispatch_async(dispatch_get_main_queue(), ^{
+      //      progressIndicator.hidden = YES;
+            self.isWorking = NO;
+        });
+    }];
+    self.isWorking = YES;
+    //progressIndicator.hidden = NO;
     [task launchAndReturnError:&err];
 }
 
@@ -218,39 +413,85 @@ dispatch_source_t _timer;
     
     [self loadSettings];
     
+    [self.startWorkingIndicator startAnimation:nil];
+    [self.stopWorkingIndicator startAnimation:nil];
     self.statusBar = [NSStatusBar systemStatusBar];// [[NSStatusBar alloc] init];
     
     self.statusItem = [self.statusBar statusItemWithLength:NSSquareStatusItemLength];
     
     NSImage* img = [NSImage imageNamed:@"MenuBarIcon"];
     img.size = NSMakeSize(18.0, 18.0);
-    img.template = YES;
     self.statusItem.button.image = img;
     self.statusItem.menu = self.statusMenu;
     
+    [self.statusItem.button addSubview: [self getProgressIndicator: img.size]];
+    
+    
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
     _timer = CreateTimerDispatchSource(1, queue, ^{
-//        int n = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
-//        int *buffer = (int *)malloc(sizeof(int)*n);
-//        n = proc_listpids(PROC_ALL_PIDS, 0, buffer, n*sizeof(int));
-//
-//        int i;
-//        for(i = 0; i < n; i++) {
-//            pid_t pid = buffer[i];
-//            if ( pid == 0 ) continue;
-//            char path[PROC_PIDPATHINFO_MAXSIZE];
-//            proc_pidpath(pid, path, sizeof(path));
-//            NSLog(@"(%d) %s",pid, path);
-//            if ( strstr(path, "colima") ) {
-//                NSLog(@"We found colima running");
-//                break;
-//            }
-//        }
-//        NSLog(@"----------------");
-        self->_isStarted = self.colimaIsStarted;
-
+        self.isStarted = self.colimaIsStarted;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if ( self.homebrewIsDeployed ) {
+                [self makeViewRound:self.homebrewDeployedLight andColored:NSColor.greenColor];
+                self.deployHomebrewButton.enabled = NO;
+            } else {
+                [self makeViewRound:self.homebrewDeployedLight andColored:NSColor.redColor];
+                self.deployHomebrewButton.enabled = YES;
+            }
+            if ( self.colimaIsDeployed ) {
+                [self makeViewRound:self.colimaDeployedLight andColored:NSColor.greenColor];
+                self.deployColimaButton.enabled = NO;
+            } else {
+                [self makeViewRound:self.colimaDeployedLight andColored:NSColor.redColor];
+                self.deployColimaButton.enabled = YES;
+            }
+            if ( self.dockerIsDeployed ) {
+                [self makeViewRound:self.dockerDeployedLight andColored:NSColor.greenColor];
+                self.deployDockerButton.enabled = NO;
+            } else {
+                [self makeViewRound:self.dockerDeployedLight andColored:NSColor.redColor];
+                self.deployDockerButton.enabled = YES;
+            }
+            if ( self.portainerIsDeployed ) {
+                [self makeViewRound:self.portainerDeployedLight andColored:NSColor.greenColor];
+                self.deployPortainerButton.enabled = NO;
+            } else {
+                [self makeViewRound:self.portainerDeployedLight andColored:NSColor.redColor];
+                self.deployPortainerButton.enabled = YES;
+            }
+            
+        });
+        
     }) ;
     
+    [self addObserver:self forKeyPath:@"isWorking" options:NSKeyValueObservingOptionNew context:nil];
+    
+    
+    [self makeViewRound:self.homebrewDeployedLight andColored:NSColor.redColor];
+    [self makeViewRound:self.colimaDeployedLight andColored:NSColor.redColor];
+    [self makeViewRound:self.portainerDeployedLight andColored:NSColor.redColor];
+    
+    
+}
+
+- (void)makeViewRound:(NSView*)view andColored:(NSColor*)color {
+    view.wantsLayer = YES;
+    view.layer.cornerRadius = view.layer.frame.size.width / 2;
+    view.layer.backgroundColor = color.CGColor;
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context{
+
+    if ( [keyPath isEqualTo:@"isWorking"] ) {
+        if ( self.isWorking ) {
+            self.statusItem.button.image = [NSImage imageNamed:@"MenuBarIconOrange"];
+            progressIndicator.hidden = NO;
+        } else {
+            self.statusItem.button.image = [NSImage imageNamed:@"MenuBarIcon"];
+            progressIndicator.hidden = YES;
+        }
+        self.statusItem.button.image.size = NSMakeSize(18.0, 18.0);
+    }
 }
 
 - (void)applicationWillTerminate:(NSNotification *)notification {
@@ -269,6 +510,7 @@ dispatch_source_t _timer;
     self.useKubernetes = [defaults objectForKey:@"useKubernetes"] == nil ? NO : [defaults boolForKey:@"useKubernetes"];
     self.containerRuntime = [defaults objectForKey:@"containerRuntime"] == nil ? @"docker" : [defaults objectForKey:@"containerRuntime"];
 }
+
 - (void) persisSettings {
     NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
     [defaults setInteger:self.cpuValue.integerValue forKey:@"cpu"];
