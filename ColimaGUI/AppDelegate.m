@@ -279,12 +279,8 @@ NSProgressIndicator* progressIndicator;
 }
 
 - (bool)portainerIsDeployed {
-    //docker ps | grep portainer
     NSTask* task = [[NSTask alloc] init];
     NSError* err;
-    NSString* colimaPath = [self colimaPath];
-    //colimaPath = @"/bin/zsh";
-    if ( colimaPath == nil ) return NO;
 
     task.launchPath = @"/bin/zsh";
     [task setArguments:[NSArray arrayWithObjects: @"-c", @"-l", @"docker ps | grep portainer >/dev/null 2>&1", nil]];
@@ -368,10 +364,16 @@ NSProgressIndicator* progressIndicator;
     [task launchAndReturnError:&err];
 }
 
-- (IBAction)onSettingsMenuClick:(id)sender {
+- (IBAction)onSettingsMenuClick:(NSMenuItem*)sender {
     [NSApp activateIgnoringOtherApps:YES];
     [self.settingsWindow makeKeyAndOrderFront:self];
     [self.settingsWindow setIsVisible:YES];
+    
+    NSPoint pos;
+    pos.x = self.settingsWindow.screen.frame.size.width / 2 - [self.settingsWindow frame].size.width / 2;
+    pos.y = self.settingsWindow.screen.frame.size.height / 2 + [self.settingsWindow frame].size.height / 2;
+    
+    [self.settingsWindow setFrameTopLeftPoint:pos];
     self.statusItem.button.enabled = NO;
 }
 
@@ -397,7 +399,7 @@ NSProgressIndicator* progressIndicator;
     
     bool changed = ![self.cpuValue isEqualToNumber:currentCpu] || ![self.memoryValue isEqualToNumber:currentMemory] || ![self.diskValue isEqualToNumber:currentDisk] || currentUseKubernetes != self.useKubernetes || ![currentRuntime isEqualTo:self.containerRuntime];
     
-    [self persisSettings];
+    [self persistSettings];
     
     if ( changed ) {
         [self onRestartMenuClick:sender];
@@ -405,8 +407,11 @@ NSProgressIndicator* progressIndicator;
 }
 
 - (IBAction)onCancelSettingsClick:(id)sender {
+    [self.settingsWindow makeFirstResponder:nil];
     [self.settingsWindow orderOut:self];
     self.statusItem.button.enabled = YES;
+    
+    [self loadSettings];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
@@ -427,7 +432,7 @@ NSProgressIndicator* progressIndicator;
     [self.statusItem.button addSubview: [self getProgressIndicator: img.size]];
     
     
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     _timer = CreateTimerDispatchSource(1, queue, ^{
         self.isStarted = self.colimaIsStarted;
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -443,21 +448,21 @@ NSProgressIndicator* progressIndicator;
                 self.deployColimaButton.enabled = NO;
             } else {
                 [self makeViewRound:self.colimaDeployedLight andColored:NSColor.redColor];
-                self.deployColimaButton.enabled = YES;
+                self.deployColimaButton.enabled = self.homebrewIsDeployed;
             }
             if ( self.dockerIsDeployed ) {
                 [self makeViewRound:self.dockerDeployedLight andColored:NSColor.greenColor];
                 self.deployDockerButton.enabled = NO;
             } else {
                 [self makeViewRound:self.dockerDeployedLight andColored:NSColor.redColor];
-                self.deployDockerButton.enabled = YES;
+                self.deployDockerButton.enabled = self.homebrewIsDeployed;
             }
             if ( self.portainerIsDeployed ) {
                 [self makeViewRound:self.portainerDeployedLight andColored:NSColor.greenColor];
                 self.deployPortainerButton.enabled = NO;
             } else {
                 [self makeViewRound:self.portainerDeployedLight andColored:NSColor.redColor];
-                self.deployPortainerButton.enabled = YES;
+                self.deployPortainerButton.enabled = self.dockerIsDeployed && self.colimaIsDeployed;
             }
             
         });
@@ -511,7 +516,7 @@ NSProgressIndicator* progressIndicator;
     self.containerRuntime = [defaults objectForKey:@"containerRuntime"] == nil ? @"docker" : [defaults objectForKey:@"containerRuntime"];
 }
 
-- (void) persisSettings {
+- (void) persistSettings {
     NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
     [defaults setInteger:self.cpuValue.integerValue forKey:@"cpu"];
     [defaults setInteger:self.memoryValue.integerValue forKey:@"memory"];
